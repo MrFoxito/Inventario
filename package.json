@@ -1,0 +1,38 @@
+{
+  "name": "inventario-movil",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Sistema de Gestión de Inventario de Equipos Móviles & SIM Cards",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k -n \"SERVER,CLIENT\" -c \"cyan,magenta\" \"node --watch api/index.js\" \"vite\"",
+    "client": "vite",
+    "server": "node --watch api/index.js",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.110.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.4.2",
+    "exceljs": "^4.4.0",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.3",
+    "lucide-react": "^1.23.0",
+    "react": "^18.3.1",
+    "react-countup": "^6.5.3",
+    "react-dom": "^18.3.1",
+    "react-parallax-tilt": "^1.7.333",
+    "react-router-dom": "^6.28.2",
+    "recharts": "^3.9.2",
+    "vercel": "^54.21.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.2",
+    "vite": "^6.0.7"
+  }
+}

@@ -1,0 +1,4 @@
+.employees-container {
+  padding: 1rem 0;
+  animation: fadeIn var(--transition-normal);
+}

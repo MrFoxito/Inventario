@@ -1,0 +1,39 @@
+/* SimCards uses the same styles as Terminals for consistency */
+.simcards-container {
+  padding: 1rem 0;
+  animation: fadeIn var(--transition-normal);
+}
+
+.simcards-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.simcards-header h2 {
+  font-size: 2.25rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  color: #ffffff;
+  display: inline-block;
+  letter-spacing: -0.02em;
+  position: relative;
+}
+
+.simcards-header h2::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 40px;
+  height: 4px;
+  background: var(--gradient-primary);
+  border-radius: 4px;
+}
+
+.simcards-header p {
+  color: var(--text-secondary);
+}
+
+/* We reuse most CSS from Terminals.css by importing it in the JSX or using global classes */
