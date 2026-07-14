@@ -5,15 +5,19 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Users, Plus, Search, Edit2, ShieldOff, CheckCircle } from 'lucide-react';
 import EmployeeForm from './EmployeeForm';
 import ConfirmDialog from '../shared/ConfirmDialog';
+import { TEAMS, getTeamConfig, canSeeAllTeams } from '../../utils/constants';
 import './Employees.css';
 import '../Terminals/Terminals.css'; // Reusing premium table styling
+
+const TEAM_FILTER_ALL = 'ALL';
 
 export default function EmployeeList() {
   const { user, isAdmin } = useAuth();
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  
+  const [teamFilter, setTeamFilter] = useState(TEAM_FILTER_ALL);
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
   
@@ -38,10 +42,16 @@ export default function EmployeeList() {
     }
   };
 
-  const filteredEmployees = employees.filter(e => 
-    e.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (e.email && e.email.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const canSeeAll = canSeeAllTeams(user);
+
+  const filteredEmployees = employees.filter(e => {
+    const matchesSearch = e.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (e.email && e.email.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesTeam = canSeeAll
+      ? (teamFilter === TEAM_FILTER_ALL || e.team === teamFilter)
+      : e.team === user?.team;
+    return matchesSearch && matchesTeam;
+  });
 
   const handleFormSubmit = async (data) => {
     try {
@@ -116,6 +126,14 @@ export default function EmployeeList() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+        {canSeeAll && (
+          <div className="status-filters">
+            <button className={`filter-btn ${teamFilter === TEAM_FILTER_ALL ? 'active' : ''}`} onClick={() => setTeamFilter(TEAM_FILTER_ALL)}>Todos</button>
+            {TEAMS.map(t => (
+              <button key={t.value} className={`filter-btn ${teamFilter === t.value ? 'active' : ''}`} onClick={() => setTeamFilter(t.value)}>{t.label}</button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="table-container">
@@ -135,6 +153,7 @@ export default function EmployeeList() {
             <thead>
               <tr>
                 <th>Nombre Completo</th>
+                <th>Team</th>
                 <th>Correo Electrónico</th>
                 <th>Teléfono</th>
                 <th style={{ textAlign: 'center' }}>Equipos Asignados</th>
@@ -145,9 +164,13 @@ export default function EmployeeList() {
             <tbody>
               {filteredEmployees.map((emp, index) => {
                 const totalEquipos = (emp.term_count || 0) + (emp.sim_count || 0);
+                const teamConfig = getTeamConfig(emp.team);
                 return (
                   <tr key={emp.id} style={{ animationDelay: `${index * 50}ms` }}>
                     <td data-label="Nombre Completo" style={{ fontWeight: 600 }}>{emp.name}</td>
+                    <td data-label="Team">
+                      <span className={`badge ${teamConfig.badgeClass}`}>{teamConfig.label}</span>
+                    </td>
                     <td data-label="Correo Electrónico" style={{ color: 'var(--text-secondary)' }}>{emp.email || '-'}</td>
                     <td data-label="Teléfono">{emp.phone || '-'}</td>
                     <td data-label="Equipos Asignados" style={{ textAlign: 'center', fontWeight: 600, color: totalEquipos > 0 ? 'var(--accent-primary)' : 'var(--text-secondary)' }}>

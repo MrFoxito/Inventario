@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { TEAMS, DEFAULT_TEAM } from '../../utils/constants';
 
 export default function EmployeeForm({ isOpen, onClose, onSubmit, initialData }) {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
+    team: DEFAULT_TEAM,
   });
 
   useEffect(() => {
@@ -14,12 +16,14 @@ export default function EmployeeForm({ isOpen, onClose, onSubmit, initialData })
         name: initialData.name || '',
         email: initialData.email || '',
         phone: initialData.phone || '',
+        team: initialData.team || DEFAULT_TEAM,
       });
     } else {
       setFormData({
         name: '',
         email: '',
         phone: '',
+        team: DEFAULT_TEAM,
       });
     }
   }, [initialData, isOpen]);
@@ -70,13 +74,28 @@ export default function EmployeeForm({ isOpen, onClose, onSubmit, initialData })
           
           <div className="form-group">
             <label>Teléfono de Contacto</label>
-            <input 
-              type="text" 
-              name="phone" 
-              value={formData.phone} 
-              onChange={handleChange} 
+            <input
+              type="text"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
               placeholder="987654321"
             />
+          </div>
+
+          <div className="form-group">
+            <label>Team *</label>
+            <select
+              className="form-control"
+              name="team"
+              value={formData.team}
+              onChange={handleChange}
+              required
+            >
+              {TEAMS.map((t) => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
           </div>
 
           <div className="form-actions">

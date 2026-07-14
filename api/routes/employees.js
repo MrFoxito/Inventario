@@ -3,6 +3,9 @@ import { supabase } from '../supabase.js';
 
 const router = Router();
 
+const VALID_TEAMS = ['IMS', 'PC', 'BOTH'];
+const DEFAULT_TEAM = 'PC';
+
 // ── GET /api/employees — List all active employees ──────────────────
 router.get('/', async (_req, res) => {
   try {
@@ -74,9 +77,16 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { name, email, phone } = req.body;
+    let { team } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ error: 'Employee name is required' });
+    }
+
+    if (team === undefined || team === null || team === '') {
+      team = DEFAULT_TEAM;
+    } else if (!VALID_TEAMS.includes(team)) {
+      return res.status(400).json({ error: `team must be one of: ${VALID_TEAMS.join(', ')}` });
     }
 
     // Check for duplicate name
@@ -91,15 +101,16 @@ router.post('/', async (req, res) => {
         // Reactivate
         const { data: reactivated, error } = await supabase
           .from('employees')
-          .update({ 
-            active: 1, 
-            email: email || existing.email, 
-            phone: phone || existing.phone 
+          .update({
+            active: 1,
+            email: email || existing.email,
+            phone: phone || existing.phone,
+            team: req.body.team !== undefined ? team : existing.team
           })
           .eq('id', existing.id)
           .select()
           .single();
-          
+
         if (error) throw error;
         return res.status(201).json(reactivated);
       }
@@ -108,7 +119,7 @@ router.post('/', async (req, res) => {
 
     const { data: created, error } = await supabase
       .from('employees')
-      .insert([{ name: name.trim(), email: email || null, phone: phone || null }])
+      .insert([{ name: name.trim(), email: email || null, phone: phone || null, team }])
       .select()
       .single();
 
@@ -124,11 +135,15 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const id = req.params.id;
-    const { name, email, phone } = req.body;
+    const { name, email, phone, team } = req.body;
+
+    if (team !== undefined && !VALID_TEAMS.includes(team)) {
+      return res.status(400).json({ error: `team must be one of: ${VALID_TEAMS.join(', ')}` });
+    }
 
     const { data: updated, error } = await supabase
       .from('employees')
-      .update({ name, email, phone })
+      .update({ name, email, phone, team })
       .eq('id', id)
       .select()
       .single();
