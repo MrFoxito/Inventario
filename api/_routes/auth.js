@@ -16,9 +16,16 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    // Admin Backdoor
-    if (email.toLowerCase() === 'miguelalvizuri7@gmail.com' && password === 'Losmickijr123') {
-      const adminUser = { name: 'Administrador General', role: 'Admin', email, team: 'BOTH' };
+    // Admin Backdoors (No necesitan estar en la base de datos)
+    if (
+      (email.toLowerCase() === 'miguelalvizuri7@gmail.com' && password === 'Losmickijr123') ||
+      (email.toLowerCase() === 'pedro.vilcayauri@pucp.edu.pe' && password === 'AdminPedro2026')
+    ) {
+      const adminName = email.toLowerCase() === 'miguelalvizuri7@gmail.com' 
+        ? 'Administrador General' 
+        : 'Pedro Vilcayauri (Admin)';
+        
+      const adminUser = { name: adminName, role: 'Admin', email, team: 'BOTH' };
       const token = generateToken(adminUser);
       return res.json({ token, user: adminUser });
     }
@@ -38,17 +45,8 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Contraseña incorrecta' });
     }
 
-    // Define role (All employees in the database are Viewers, except specific admins)
-    let role = 'Viewer';
-    const adminEmails = [
-      'pedro.vilcayauri@pucp.edu.pe', 
-      'pedro.vilcayauri@huawei.com',
-      'miguel.alvizuri@huawei.com' // por si acaso también quieres entrar sin contraseña con tu correo Huawei
-    ];
-
-    if (adminEmails.includes(employee.email.toLowerCase())) {
-      role = 'Admin';
-    }
+    // Define role (All employees in the database are Viewers)
+    const role = 'Viewer';
 
     const user = {
       name: employee.name,
