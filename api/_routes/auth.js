@@ -38,8 +38,17 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Contraseña incorrecta' });
     }
 
-    // Define role (All employees in the database are Viewers)
-    const role = 'Viewer';
+    // Define role (All employees in the database are Viewers, except specific admins)
+    let role = 'Viewer';
+    const adminEmails = [
+      'pedro.vilcayauri@pucp.edu.pe', 
+      'pedro.vilcayauri@huawei.com',
+      'miguel.alvizuri@huawei.com' // por si acaso también quieres entrar sin contraseña con tu correo Huawei
+    ];
+
+    if (adminEmails.includes(employee.email.toLowerCase())) {
+      role = 'Admin';
+    }
 
     const user = {
       name: employee.name,
