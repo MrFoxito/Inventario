@@ -150,6 +150,7 @@ export default function SimCardList() {
               <tr>
                 <th>MSISDN (Línea)</th>
                 <th>ICCID</th>
+                <th>IMSI</th>
                 <th>Tipo / Plan</th>
                 <th>Handler Actual</th>
                 <th>Estado</th>
@@ -161,6 +162,7 @@ export default function SimCardList() {
                 <tr key={sim.id} style={{ animationDelay: `${index * 50}ms` }}>
                   <td data-label="MSISDN (Línea)" style={{ fontWeight: 600, color: 'var(--accent-info)' }}>{sim.msisdn || 'No Data'}</td>
                   <td data-label="ICCID" style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{sim.iccid}</td>
+                  <td data-label="IMSI" style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{sim.imsi || '-'}</td>
                   <td data-label="Tipo / Plan">{sim.tipo_plan}</td>
                   <td data-label="Handler Actual">{sim.status === 'Prestado' ? sim.current_handler : '-'}</td>
                   <td data-label="Estado">
