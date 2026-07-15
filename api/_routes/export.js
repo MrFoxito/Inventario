@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import ExcelJS from 'exceljs';
-import { supabase } from '../supabase.js';
+import { supabase } from '../_supabase.js';
 
 const router = Router();
 
