@@ -101,9 +101,11 @@ export default function SimCardList() {
   const canSeeAll = canSeeAllTeams(user);
 
   const filteredSimCards = simCards.filter(s => {
-    return canSeeAll
-      ? (teamFilter === TEAM_FILTER_ALL || s.team === teamFilter)
-      : s.team === user?.team;
+    if (!canSeeAll) {
+      if (filter === 'Disponible') return true;
+      return s.team === user?.team;
+    }
+    return teamFilter === TEAM_FILTER_ALL || s.team === teamFilter;
   });
 
   return (

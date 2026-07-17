@@ -106,9 +106,11 @@ export default function TerminalList() {
   const canSeeAll = canSeeAllTeams(user);
 
   const filteredTerminals = terminals.filter(t => {
-    return canSeeAll
-      ? (teamFilter === TEAM_FILTER_ALL || t.team === teamFilter)
-      : t.team === user?.team;
+    if (!canSeeAll) {
+      if (filter === 'Disponible') return true;
+      return t.team === user?.team;
+    }
+    return teamFilter === TEAM_FILTER_ALL || t.team === teamFilter;
   });
 
   return (
