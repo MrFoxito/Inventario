@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Modal from '../shared/Modal';
+import { TEAMS, DEFAULT_TEAM } from '../../utils/constants';
 
 const FABRICANTES = ['APPLE', 'HUAWEI', 'SAMSUNG', 'OPPO', 'VIVO', 'HONOR', 'XIAOMI', 'MOTOROLA', 'OTROS'];
 
@@ -9,7 +10,8 @@ export default function TerminalForm({ isOpen, onClose, onSubmit, initialData = 
     comercial: '',
     modelo: '',
     serial_number: '',
-    imei1: ''
+    imei1: '',
+    team: DEFAULT_TEAM
   });
   
   const [customFabricante, setCustomFabricante] = useState('');
@@ -21,7 +23,8 @@ export default function TerminalForm({ isOpen, onClose, onSubmit, initialData = 
         comercial: initialData.comercial || '',
         modelo: initialData.modelo || '',
         serial_number: initialData.serial_number || '',
-        imei1: initialData.imei1 || ''
+        imei1: initialData.imei1 || '',
+        team: initialData.team || DEFAULT_TEAM
       });
       if (!FABRICANTES.includes(initialData.fabricante)) {
         setCustomFabricante(initialData.fabricante);
@@ -32,7 +35,8 @@ export default function TerminalForm({ isOpen, onClose, onSubmit, initialData = 
         comercial: '',
         modelo: '',
         serial_number: '',
-        imei1: ''
+        imei1: '',
+        team: DEFAULT_TEAM
       });
       setCustomFabricante('');
     }
@@ -126,15 +130,30 @@ export default function TerminalForm({ isOpen, onClose, onSubmit, initialData = 
 
         <div className="form-group">
           <label>IMEI 1 *</label>
-          <input 
-            type="text" 
-            className="form-control" 
-            name="imei1" 
-            value={formData.imei1} 
+          <input
+            type="text"
+            className="form-control"
+            name="imei1"
+            value={formData.imei1}
             onChange={handleChange}
             required
             placeholder="15 dígitos"
           />
+        </div>
+
+        <div className="form-group">
+          <label>Team *</label>
+          <select
+            className="form-control"
+            name="team"
+            value={formData.team}
+            onChange={handleChange}
+            required
+          >
+            {TEAMS.map(t => (
+              <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
+          </select>
         </div>
 
         <div className="form-actions">

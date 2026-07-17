@@ -1,15 +1,15 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import terminalsRouter from './_routes/terminals.js';
-import simcardsRouter from './_routes/simcards.js';
-import employeesRouter from './_routes/employees.js';
-import assignmentsRouter from './_routes/assignments.js';
-import logsRouter from './_routes/logs.js';
-import reportsRouter from './_routes/reports.js';
-import dashboardRouter from './_routes/dashboard.js';
-import exportRouter from './_routes/export.js';
-import authRouter from './_routes/auth.js';
+import terminalsRouter from './routes/terminals.js';
+import simcardsRouter from './routes/simcards.js';
+import employeesRouter from './routes/employees.js';
+import assignmentsRouter from './routes/assignments.js';
+import logsRouter from './routes/logs.js';
+import reportsRouter from './routes/reports.js';
+import dashboardRouter from './routes/dashboard.js';
+import exportRouter from './routes/export.js';
+import authRouter from './routes/auth.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;

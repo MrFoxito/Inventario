@@ -3,6 +3,9 @@ import { supabase } from '../_supabase.js';
 
 const router = Router();
 
+const VALID_TEAMS = ['IMS', 'PC', 'BOTH'];
+const DEFAULT_TEAM = 'PC';
+
 // ── GET /api/terminals — List all terminals ─────────────────────────
 router.get('/', async (req, res) => {
   try {
@@ -52,9 +55,16 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { fabricante, comercial, modelo, serial_number, imei1, responsible, current_handler, ubicacion, status } = req.body;
+    let { team } = req.body;
 
     if (!fabricante || !comercial || !imei1) {
       return res.status(400).json({ error: 'Fields fabricante, comercial, and imei1 are required' });
+    }
+
+    if (team === undefined || team === null || team === '') {
+      team = DEFAULT_TEAM;
+    } else if (!VALID_TEAMS.includes(team)) {
+      return res.status(400).json({ error: `team must be one of: ${VALID_TEAMS.join(', ')}` });
     }
 
     const { data: created, error } = await supabase
@@ -68,7 +78,8 @@ router.post('/', async (req, res) => {
         responsible: responsible || 'Miguel Angel Alvizuri',
         current_handler: current_handler || 'Miguel Angel Alvizuri',
         ubicacion: ubicacion || null,
-        status: status || 'Disponible'
+        status: status || 'Disponible',
+        team
       }])
       .select()
       .single();
@@ -85,13 +96,17 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const id = req.params.id;
-    const { fabricante, comercial, modelo, serial_number, imei1, responsible, current_handler, ubicacion, status } = req.body;
+    const { fabricante, comercial, modelo, serial_number, imei1, responsible, current_handler, ubicacion, status, team } = req.body;
+
+    if (team !== undefined && !VALID_TEAMS.includes(team)) {
+      return res.status(400).json({ error: `team must be one of: ${VALID_TEAMS.join(', ')}` });
+    }
 
     const { data: updated, error } = await supabase
       .from('terminals')
       .update({
         fabricante, comercial, modelo, serial_number, imei1,
-        responsible, current_handler, ubicacion, status,
+        responsible, current_handler, ubicacion, status, team,
         updated_at: new Date().toISOString()
       })
       .eq('id', id)

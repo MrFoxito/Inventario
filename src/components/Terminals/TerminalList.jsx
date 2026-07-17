@@ -7,14 +7,18 @@ import TerminalForm from './TerminalForm';
 import ConfirmDialog from '../shared/ConfirmDialog';
 import DeviceImage from '../shared/DeviceImage';
 import DeviceDetailsModal from '../shared/DeviceDetailsModal';
+import { TEAMS, getTeamConfig, canSeeAllTeams } from '../../utils/constants';
 import './Terminals.css';
 
+const TEAM_FILTER_ALL = 'ALL';
+
 export default function TerminalList() {
-  const { isAdmin } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [terminals, setTerminals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('Todos'); // Todos, Disponible, Prestado
   const [searchTerm, setSearchTerm] = useState('');
+  const [teamFilter, setTeamFilter] = useState(TEAM_FILTER_ALL);
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTerminal, setEditingTerminal] = useState(null);
@@ -99,6 +103,14 @@ export default function TerminalList() {
     setIsDeleteOpen(true);
   };
 
+  const canSeeAll = canSeeAllTeams(user);
+
+  const filteredTerminals = terminals.filter(t => {
+    return canSeeAll
+      ? (teamFilter === TEAM_FILTER_ALL || t.team === teamFilter)
+      : t.team === user?.team;
+  });
+
   return (
     <div className="terminals-container">
       <div className="terminals-header">
@@ -134,6 +146,14 @@ export default function TerminalList() {
           <button className={`filter-btn ${filter === 'Disponible' ? 'active' : ''}`} onClick={() => setFilter('Disponible')}>Disponibles</button>
           <button className={`filter-btn ${filter === 'Prestado' ? 'active' : ''}`} onClick={() => setFilter('Prestado')}>Prestados</button>
         </div>
+        {canSeeAll && (
+          <div className="status-filters">
+            <button className={`filter-btn ${teamFilter === TEAM_FILTER_ALL ? 'active' : ''}`} onClick={() => setTeamFilter(TEAM_FILTER_ALL)}>Todos</button>
+            {TEAMS.map(t => (
+              <button key={t.value} className={`filter-btn ${teamFilter === t.value ? 'active' : ''}`} onClick={() => setTeamFilter(t.value)}>{t.label}</button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="table-container">
@@ -143,7 +163,7 @@ export default function TerminalList() {
              <div className="shimmer-card" style={{ height: '40px', marginBottom: '10px' }}></div>
              <div className="shimmer-card" style={{ height: '40px', marginBottom: '10px' }}></div>
           </div>
-        ) : terminals.length === 0 ? (
+        ) : filteredTerminals.length === 0 ? (
           <div className="empty-state">
             <span><Smartphone size={48} /></span>
             <h3>No se encontraron terminales</h3>
@@ -158,17 +178,20 @@ export default function TerminalList() {
                 <th>Nombre Comercial</th>
                 <th>Modelo</th>
                 <th>IMEI 1</th>
+                <th>Team</th>
                 <th>Handler Actual</th>
                 <th>Estado</th>
                 {isAdmin && <th style={{ width: '80px' }}>Acciones</th>}
               </tr>
             </thead>
             <tbody>
-              {terminals.map((t, index) => (
+              {filteredTerminals.map((t, index) => {
+                const teamConfig = getTeamConfig(t.team);
+                return (
                 <tr key={t.id} style={{ animationDelay: `${index * 50}ms` }} className="has-image-row">
-                  <td 
-                    data-label="Foto" 
-                    className="td-image" 
+                  <td
+                    data-label="Foto"
+                    className="td-image"
                     onClick={() => setViewingTerminal(t)}
                     style={{ cursor: 'pointer' }}
                     title="Ver detalles"
@@ -179,6 +202,9 @@ export default function TerminalList() {
                   <td data-label="Comercial" style={{ fontWeight: 600 }}>{t.comercial}</td>
                   <td data-label="Modelo" style={{ color: 'var(--text-secondary)' }}>{t.modelo || '-'}</td>
                   <td data-label="IMEI 1" style={{ fontFamily: 'monospace' }}>{t.imei1}</td>
+                  <td data-label="Team">
+                    <span className={`badge ${teamConfig.badgeClass}`}>{teamConfig.label}</span>
+                  </td>
                   <td data-label="Handler Actual">{t.status === 'Prestado' ? t.current_handler : '-'}</td>
                   <td data-label="Estado">
                     <span className={`badge ${t.status}`}>{t.status}</span>
@@ -196,7 +222,8 @@ export default function TerminalList() {
                     </td>
                   )}
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         )}
