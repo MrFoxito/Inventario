@@ -4,7 +4,7 @@
  * filter in the Employees section all read from this array.
  */
 export const TEAMS = [
-  { value: 'PC', label: 'PC', badgeClass: 'badge-info' },
+  { value: 'PC', label: 'PS', badgeClass: 'badge-info' },
   { value: 'IMS', label: 'IMS', badgeClass: 'badge-warning' },
   { value: 'BOTH', label: 'BOTH', badgeClass: 'badge-success' },
 ];
