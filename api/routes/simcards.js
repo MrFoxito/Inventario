@@ -3,6 +3,9 @@ import { supabase } from '../_supabase.js';
 
 const router = Router();
 
+const VALID_TEAMS = ['IMS', 'PC', 'BOTH'];
+const DEFAULT_TEAM = 'PC';
+
 // ── GET /api/simcards — List all SIM cards ──────────────────────────
 router.get('/', async (req, res) => {
   try {
@@ -49,6 +52,13 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { iccid, imsi, msisdn, tipo_plan, owner, current_handler, procedencia, observacion, estado_actual, status } = req.body;
+    let { team } = req.body;
+
+    if (team === undefined || team === null || team === '') {
+      team = DEFAULT_TEAM;
+    } else if (!VALID_TEAMS.includes(team)) {
+      return res.status(400).json({ error: `team must be one of: ${VALID_TEAMS.join(', ')}` });
+    }
 
     const { data: created, error } = await supabase
       .from('sim_cards')
@@ -62,7 +72,8 @@ router.post('/', async (req, res) => {
         procedencia: procedencia || null,
         observacion: observacion || null,
         estado_actual: estado_actual || null,
-        status: status || 'Disponible'
+        status: status || 'Disponible',
+        team
       }])
       .select()
       .single();
@@ -79,14 +90,18 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const id = req.params.id;
-    const { iccid, imsi, msisdn, tipo_plan, owner, current_handler, procedencia, observacion, estado_actual, status } = req.body;
+    const { iccid, imsi, msisdn, tipo_plan, owner, current_handler, procedencia, observacion, estado_actual, status, team } = req.body;
+
+    if (team !== undefined && !VALID_TEAMS.includes(team)) {
+      return res.status(400).json({ error: `team must be one of: ${VALID_TEAMS.join(', ')}` });
+    }
 
     const { data: updated, error } = await supabase
       .from('sim_cards')
       .update({
         iccid, imsi, msisdn, tipo_plan,
         owner, current_handler, procedencia,
-        observacion, estado_actual, status,
+        observacion, estado_actual, status, team,
         updated_at: new Date().toISOString()
       })
       .eq('id', id)

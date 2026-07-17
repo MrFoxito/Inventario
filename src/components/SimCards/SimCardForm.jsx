@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Modal from '../shared/Modal';
+import { TEAMS, DEFAULT_TEAM } from '../../utils/constants';
 
 export default function SimCardForm({ isOpen, onClose, onSubmit, initialData = null }) {
   const [formData, setFormData] = useState({
@@ -8,7 +9,8 @@ export default function SimCardForm({ isOpen, onClose, onSubmit, initialData = n
     msisdn: '',
     tipo_plan: '',
     procedencia: '',
-    observacion: ''
+    observacion: '',
+    team: DEFAULT_TEAM
   });
 
   useEffect(() => {
@@ -19,7 +21,8 @@ export default function SimCardForm({ isOpen, onClose, onSubmit, initialData = n
         msisdn: initialData.msisdn || '',
         tipo_plan: initialData.tipo_plan || '',
         procedencia: initialData.procedencia || '',
-        observacion: initialData.observacion || ''
+        observacion: initialData.observacion || '',
+        team: initialData.team || DEFAULT_TEAM
       });
     } else {
       setFormData({
@@ -28,7 +31,8 @@ export default function SimCardForm({ isOpen, onClose, onSubmit, initialData = n
         msisdn: '',
         tipo_plan: '',
         procedencia: '',
-        observacion: ''
+        observacion: '',
+        team: DEFAULT_TEAM
       });
     }
   }, [initialData, isOpen]);
@@ -96,6 +100,21 @@ export default function SimCardForm({ isOpen, onClose, onSubmit, initialData = n
             required
             placeholder="Ej. Entel Postpago"
           />
+        </div>
+
+        <div className="form-group">
+          <label>Team *</label>
+          <select
+            className="form-control"
+            name="team"
+            value={formData.team}
+            onChange={handleChange}
+            required
+          >
+            {TEAMS.map(t => (
+              <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
+          </select>
         </div>
 
         <div className="form-group">

@@ -5,15 +5,19 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Download, Plus, Search, CreditCard, Edit2, Trash2 } from 'lucide-react';
 import SimCardForm from './SimCardForm';
 import ConfirmDialog from '../shared/ConfirmDialog';
+import { TEAMS, getTeamConfig, canSeeAllTeams } from '../../utils/constants';
 import './SimCards.css';
 import '../Terminals/Terminals.css'; // Reuse premium table styles
 
+const TEAM_FILTER_ALL = 'ALL';
+
 export default function SimCardList() {
-  const { isAdmin } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [simCards, setSimCards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('Todos'); 
   const [searchTerm, setSearchTerm] = useState('');
+  const [teamFilter, setTeamFilter] = useState(TEAM_FILTER_ALL);
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingSimCard, setEditingSimCard] = useState(null);
@@ -94,6 +98,14 @@ export default function SimCardList() {
     setIsDeleteOpen(true);
   };
 
+  const canSeeAll = canSeeAllTeams(user);
+
+  const filteredSimCards = simCards.filter(s => {
+    return canSeeAll
+      ? (teamFilter === TEAM_FILTER_ALL || s.team === teamFilter)
+      : s.team === user?.team;
+  });
+
   return (
     <div className="simcards-container">
       <div className="simcards-header">
@@ -129,6 +141,14 @@ export default function SimCardList() {
           <button className={`filter-btn ${filter === 'Disponible' ? 'active' : ''}`} onClick={() => setFilter('Disponible')}>Disponibles</button>
           <button className={`filter-btn ${filter === 'Prestado' ? 'active' : ''}`} onClick={() => setFilter('Prestado')}>Prestadas</button>
         </div>
+        {canSeeAll && (
+          <div className="status-filters">
+            <button className={`filter-btn ${teamFilter === TEAM_FILTER_ALL ? 'active' : ''}`} onClick={() => setTeamFilter(TEAM_FILTER_ALL)}>Todos</button>
+            {TEAMS.map(t => (
+              <button key={t.value} className={`filter-btn ${teamFilter === t.value ? 'active' : ''}`} onClick={() => setTeamFilter(t.value)}>{t.label}</button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="table-container">
@@ -138,7 +158,7 @@ export default function SimCardList() {
              <div className="shimmer-card" style={{ height: '40px', marginBottom: '10px' }}></div>
              <div className="shimmer-card" style={{ height: '40px', marginBottom: '10px' }}></div>
           </div>
-        ) : simCards.length === 0 ? (
+        ) : filteredSimCards.length === 0 ? (
           <div className="empty-state">
             <span><CreditCard size={48} /></span>
             <h3>No se encontraron SIM Cards</h3>
@@ -152,18 +172,24 @@ export default function SimCardList() {
                 <th>ICCID</th>
                 <th>IMSI</th>
                 <th>Tipo / Plan</th>
+                <th>Team</th>
                 <th>Handler Actual</th>
                 <th>Estado</th>
                 {isAdmin && <th style={{ width: '80px' }}>Acciones</th>}
               </tr>
             </thead>
             <tbody>
-              {simCards.map((sim, index) => (
+              {filteredSimCards.map((sim, index) => {
+                const teamConfig = getTeamConfig(sim.team);
+                return (
                 <tr key={sim.id} style={{ animationDelay: `${index * 50}ms` }}>
                   <td data-label="MSISDN (Línea)" style={{ fontWeight: 600, color: 'var(--accent-info)' }}>{sim.msisdn || 'No Data'}</td>
                   <td data-label="ICCID" style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{sim.iccid}</td>
                   <td data-label="IMSI" style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{sim.imsi || '-'}</td>
                   <td data-label="Tipo / Plan">{sim.tipo_plan}</td>
+                  <td data-label="Team">
+                    <span className={`badge ${teamConfig.badgeClass}`}>{teamConfig.label}</span>
+                  </td>
                   <td data-label="Handler Actual">{sim.status === 'Prestado' ? sim.current_handler : '-'}</td>
                   <td data-label="Estado">
                     <span className={`badge ${sim.status}`}>{sim.status}</span>
@@ -181,7 +207,7 @@ export default function SimCardList() {
                     </td>
                   )}
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
         )}

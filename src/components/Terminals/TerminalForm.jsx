@@ -141,6 +141,7 @@ export default function TerminalForm({ isOpen, onClose, onSubmit, initialData = 
           />
         </div>
 
+
         <div className="form-group">
           <label>Team *</label>
           <select
