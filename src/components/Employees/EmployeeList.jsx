@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { getEmployees, createEmployee, updateEmployee, deleteEmployee } from '../../utils/api';
 import { useToast } from '../../App';
 import { useAuth } from '../../contexts/AuthContext';
-import { Users, Plus, Search, Edit2, ShieldOff, CheckCircle } from 'lucide-react';
+import { Users, Plus, Search, Edit2, ShieldOff } from 'lucide-react';
 import EmployeeForm from './EmployeeForm';
 import ConfirmDialog from '../shared/ConfirmDialog';
 import { TEAMS, getTeamConfig, canSeeAllTeams } from '../../utils/constants';
@@ -129,7 +129,7 @@ export default function EmployeeList() {
         {canSeeAll && (
           <div className="status-filters">
             <button className={`filter-btn ${teamFilter === TEAM_FILTER_ALL ? 'active' : ''}`} onClick={() => setTeamFilter(TEAM_FILTER_ALL)}>Todos</button>
-            {TEAMS.map(t => (
+            {TEAMS.filter(t => t.value !== 'BOTH').map(t => (
               <button key={t.value} className={`filter-btn ${teamFilter === t.value ? 'active' : ''}`} onClick={() => setTeamFilter(t.value)}>{t.label}</button>
             ))}
           </div>
@@ -155,15 +155,14 @@ export default function EmployeeList() {
                 <th>Nombre Completo</th>
                 <th>Team</th>
                 <th>Correo Electrónico</th>
-                <th>Teléfono</th>
-                <th style={{ textAlign: 'center' }}>Equipos Asignados</th>
+                <th style={{ textAlign: 'center' }}>Terminales</th>
+                <th style={{ textAlign: 'center' }}>SIM Cards</th>
                 <th>Estado</th>
                 {isAdmin && <th style={{ width: '80px' }}>Acciones</th>}
               </tr>
             </thead>
             <tbody>
               {filteredEmployees.map((emp, index) => {
-                const totalEquipos = (emp.term_count || 0) + (emp.sim_count || 0);
                 const teamConfig = getTeamConfig(emp.team);
                 return (
                   <tr key={emp.id} style={{ animationDelay: `${index * 50}ms` }}>
@@ -172,9 +171,23 @@ export default function EmployeeList() {
                       <span className={`badge ${teamConfig.badgeClass}`}>{teamConfig.label}</span>
                     </td>
                     <td data-label="Correo Electrónico" style={{ color: 'var(--text-secondary)' }}>{emp.email || '-'}</td>
-                    <td data-label="Teléfono">{emp.phone || '-'}</td>
-                    <td data-label="Equipos Asignados" style={{ textAlign: 'center', fontWeight: 600, color: totalEquipos > 0 ? 'var(--accent-primary)' : 'var(--text-secondary)' }}>
-                      {totalEquipos}
+                    <td data-label="Terminales" style={{ textAlign: 'center', fontWeight: 600 }}>
+                      {emp.term_count > 0 ? (
+                        <span className="badge badge-info" style={{ borderRadius: '20px', padding: '0.2rem 0.65rem' }}>
+                          📱 {emp.term_count}
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--text-secondary)' }}>0</span>
+                      )}
+                    </td>
+                    <td data-label="SIM Cards" style={{ textAlign: 'center', fontWeight: 600 }}>
+                      {emp.sim_count > 0 ? (
+                        <span className="badge badge-warning" style={{ borderRadius: '20px', padding: '0.2rem 0.65rem' }}>
+                          💳 {emp.sim_count}
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--text-secondary)' }}>0</span>
+                      )}
                     </td>
                     <td data-label="Estado">
                       <span className="badge Disponible">
