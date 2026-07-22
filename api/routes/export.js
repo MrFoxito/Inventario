@@ -5,13 +5,21 @@ import { supabase } from '../_supabase.js';
 const router = Router();
 
 // ── GET /api/export/excel — Export inventory as Excel ────────────────
-router.get('/excel', async (_req, res) => {
+router.get('/excel', async (req, res) => {
   try {
+    const targetTeam = req.query.team || 'ALL'; // 'PC', 'IMS', 'ALL'
+
     const { data: terminals, error: termError } = await supabase.from('terminals').select('*').order('id', { ascending: true });
     if (termError) throw termError;
 
     const { data: simCards, error: simError } = await supabase.from('sim_cards').select('*').order('id', { ascending: true });
     if (simError) throw simError;
+
+    const { data: employees } = await supabase.from('employees').select('*');
+    const empTeamMap = new Map();
+    (employees || []).forEach(e => {
+      if (e.name) empTeamMap.set(e.name.trim().toLowerCase(), e.team);
+    });
 
     const workbook = new ExcelJS.Workbook();
     
@@ -26,107 +34,166 @@ router.get('/excel', async (_req, res) => {
     // Helper to apply green/red colors for status
     const applyStatusStyle = (cell, isAvailable) => {
       if (isAvailable) {
-        cell.font = { color: { argb: 'FF059669' }, bold: true }; // Emerald 600 (Green)
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD1FAE5' } }; // Light green bg
+        cell.font = { color: { argb: 'FF059669' }, bold: true }; // Emerald 600
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD1FAE5' } };
       } else {
         cell.font = { color: { argb: 'FFDC2626' }, bold: true }; // Red 600
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEE2E2' } }; // Light red bg
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEE2E2' } };
       }
     };
 
-    // ── Build Terminales sheet ──
-    const termSheet = workbook.addWorksheet('Terminales');
-    termSheet.columns = [
-      { header: 'Fabricante', key: 'fabricante', width: 15 },
-      { header: 'Comercial', key: 'comercial', width: 25 },
-      { header: 'Modelo', key: 'modelo', width: 18 },
-      { header: 'Serial number', key: 'serial_number', width: 22 },
-      { header: 'IMEI 1', key: 'imei1', width: 22 },
-      { header: 'Responsible', key: 'responsible', width: 20 },
-      { header: 'Current handler', key: 'current_handler', width: 20 },
-      { header: 'Ubicación', key: 'ubicacion', width: 30 },
-      { header: 'Estado', key: 'estado', width: 15 },
-    ];
+    // Helper to build a terminal sheet
+    const buildTerminalSheet = (sheetName, list) => {
+      const sheet = workbook.addWorksheet(sheetName);
+      sheet.columns = [
+        { header: 'Fabricante', key: 'fabricante', width: 15 },
+        { header: 'Comercial', key: 'comercial', width: 25 },
+        { header: 'Modelo', key: 'modelo', width: 18 },
+        { header: 'Serial number', key: 'serial_number', width: 22 },
+        { header: 'IMEI 1', key: 'imei1', width: 22 },
+        { header: 'Team Orig.', key: 'team', width: 12 },
+        { header: 'Responsible', key: 'responsible', width: 20 },
+        { header: 'Current handler', key: 'current_handler', width: 22 },
+        { header: 'Ubicación', key: 'ubicacion', width: 30 },
+        { header: 'Estado', key: 'estado', width: 15 },
+      ];
 
-    // Style Terminal Headers
-    termSheet.getRow(1).eachCell((cell) => {
-      cell.fill = headerFill;
-      cell.font = headerFont;
-      cell.border = thinBorder;
-      cell.alignment = { vertical: 'middle', horizontal: 'center' };
-    });
-
-    (terminals || []).forEach((t) => {
-      const isAvail = t.status === 'Disponible';
-      const estado = isAvail ? 'Disponible' : 'Ocupado';
-      const ubicacion = isAvail ? 'Oficinas Huawei' : `En manos de ${t.current_handler || 'Desconocido'}`;
-      
-      const row = termSheet.addRow({
-        fabricante: t.fabricante || '',
-        comercial: t.comercial || '',
-        modelo: t.modelo || '',
-        serial_number: t.serial_number || '',
-        imei1: t.imei1 || '',
-        responsible: t.responsible || '',
-        current_handler: t.current_handler || '',
-        ubicacion: ubicacion,
-        estado: estado,
-      });
-
-      row.eachCell(cell => {
+      sheet.getRow(1).eachCell((cell) => {
+        cell.fill = headerFill;
+        cell.font = headerFont;
         cell.border = thinBorder;
-        cell.numFmt = '@';
-      });
-      // Apply color rule to 'Estado'
-      applyStatusStyle(row.getCell('estado'), isAvail);
-    });
-
-    // ── Build SIMCARDS sheet ──
-    const simSheet = workbook.addWorksheet('SIMCARDS');
-    simSheet.columns = [
-      { header: 'ICCID', key: 'iccid', width: 25 },
-      { header: 'IMSI', key: 'imsi', width: 20 },
-      { header: 'MSISDN (Línea)', key: 'msisdn', width: 20 },
-      { header: 'TIPO / PLAN', key: 'tipo_plan', width: 20 },
-      { header: 'Owner', key: 'owner', width: 15 },
-      { header: 'Current handler', key: 'current_handler', width: 25 },
-      { header: 'Procedencia', key: 'procedencia', width: 15 },
-      { header: 'Observacion', key: 'observacion', width: 25 },
-      { header: 'Ubicación', key: 'ubicacion', width: 25 },
-      { header: 'Estado', key: 'estado', width: 15 },
-    ];
-
-    simSheet.getRow(1).eachCell((cell) => {
-      cell.fill = headerFill;
-      cell.font = headerFont;
-      cell.border = thinBorder;
-      cell.alignment = { vertical: 'middle', horizontal: 'center' };
-    });
-
-    (simCards || []).forEach((s) => {
-      const isAvail = s.status === 'Disponible';
-      const estado = isAvail ? 'Disponible' : 'Ocupado';
-      
-      const row = simSheet.addRow({
-        iccid: s.iccid || '',
-        imsi: s.imsi || '',
-        msisdn: s.msisdn || '',
-        tipo_plan: s.tipo_plan || '',
-        owner: s.owner || '',
-        current_handler: s.current_handler || '',
-        procedencia: s.procedencia || '',
-        observacion: s.observacion || '',
-        ubicacion: s.estado_actual || '',
-        estado: estado,
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
       });
 
-      row.eachCell(cell => {
+      (list || []).forEach((t) => {
+        const isAvail = t.status === 'Disponible';
+        const estado = isAvail ? 'Disponible' : 'Ocupado';
+        const ubicacion = isAvail ? 'Oficinas Huawei' : `En manos de ${t.current_handler || 'Desconocido'}`;
+        
+        const row = sheet.addRow({
+          fabricante: t.fabricante || '',
+          comercial: t.comercial || '',
+          modelo: t.modelo || '',
+          serial_number: t.serial_number || '',
+          imei1: t.imei1 || '',
+          team: t.team === 'PC' ? 'PS' : (t.team || 'PS'),
+          responsible: t.responsible || '',
+          current_handler: t.current_handler || '',
+          ubicacion: ubicacion,
+          estado: estado,
+        });
+
+        row.eachCell(cell => {
+          cell.border = thinBorder;
+          cell.numFmt = '@';
+        });
+        applyStatusStyle(row.getCell('estado'), isAvail);
+      });
+    };
+
+    // Helper to build a SIM card sheet
+    const buildSimSheet = (sheetName, list) => {
+      const sheet = workbook.addWorksheet(sheetName);
+      sheet.columns = [
+        { header: 'ICCID', key: 'iccid', width: 25 },
+        { header: 'IMSI', key: 'imsi', width: 20 },
+        { header: 'MSISDN (Línea)', key: 'msisdn', width: 20 },
+        { header: 'TIPO / PLAN', key: 'tipo_plan', width: 20 },
+        { header: 'Team Orig.', key: 'team', width: 12 },
+        { header: 'Owner', key: 'owner', width: 18 },
+        { header: 'Current handler', key: 'current_handler', width: 25 },
+        { header: 'Procedencia', key: 'procedencia', width: 15 },
+        { header: 'Observacion', key: 'observacion', width: 25 },
+        { header: 'Ubicación', key: 'ubicacion', width: 25 },
+        { header: 'Estado', key: 'estado', width: 15 },
+      ];
+
+      sheet.getRow(1).eachCell((cell) => {
+        cell.fill = headerFill;
+        cell.font = headerFont;
         cell.border = thinBorder;
-        cell.numFmt = '@';
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
       });
-      // Apply color rule to 'Estado'
-      applyStatusStyle(row.getCell('estado'), isAvail);
-    });
+
+      (list || []).forEach((s) => {
+        const isAvail = s.status === 'Disponible';
+        const estado = isAvail ? 'Disponible' : 'Ocupado';
+        
+        const row = sheet.addRow({
+          iccid: s.iccid || '',
+          imsi: s.imsi || '',
+          msisdn: s.msisdn || '',
+          tipo_plan: s.tipo_plan || '',
+          team: s.team === 'PC' ? 'PS' : (s.team || 'PS'),
+          owner: s.owner || '',
+          current_handler: s.current_handler || '',
+          procedencia: s.procedencia || '',
+          observacion: s.observacion || '',
+          ubicacion: s.estado_actual || '',
+          estado: estado,
+        });
+
+        row.eachCell(cell => {
+          cell.border = thinBorder;
+          cell.numFmt = '@';
+        });
+        applyStatusStyle(row.getCell('estado'), isAvail);
+      });
+    };
+
+    if (targetTeam === 'PC') {
+      // PS Specific Report
+      const termPS = (terminals || []).filter(t => t.team === 'PC');
+      const simPS = (simCards || []).filter(s => s.team === 'PC');
+
+      // External items borrowed by PS employees from other teams
+      const extTermPS = (terminals || []).filter(t => 
+        t.team !== 'PC' && 
+        t.status === 'Prestado' && 
+        empTeamMap.get((t.current_handler || '').trim().toLowerCase()) === 'PC'
+      );
+      const extSimPS = (simCards || []).filter(s => 
+        s.team !== 'PC' && 
+        s.status === 'Prestado' && 
+        empTeamMap.get((s.current_handler || '').trim().toLowerCase()) === 'PC'
+      );
+
+      buildTerminalSheet('Terminales PS', termPS);
+      buildSimSheet('SIM Cards PS', simPS);
+      if (extTermPS.length > 0 || extSimPS.length > 0) {
+        buildTerminalSheet('Term. Externos (Préstamo PS)', extTermPS);
+        buildSimSheet('SIMs Externas (Préstamo PS)', extSimPS);
+      }
+
+    } else if (targetTeam === 'IMS') {
+      // IMS Specific Report
+      const termIMS = (terminals || []).filter(t => t.team === 'IMS');
+      const simIMS = (simCards || []).filter(s => s.team === 'IMS');
+
+      // External items borrowed by IMS employees from other teams
+      const extTermIMS = (terminals || []).filter(t => 
+        t.team !== 'IMS' && 
+        t.status === 'Prestado' && 
+        empTeamMap.get((t.current_handler || '').trim().toLowerCase()) === 'IMS'
+      );
+      const extSimIMS = (simCards || []).filter(s => 
+        s.team !== 'IMS' && 
+        s.status === 'Prestado' && 
+        empTeamMap.get((s.current_handler || '').trim().toLowerCase()) === 'IMS'
+      );
+
+      buildTerminalSheet('Terminales IMS', termIMS);
+      buildSimSheet('SIM Cards IMS', simIMS);
+      if (extTermIMS.length > 0 || extSimIMS.length > 0) {
+        buildTerminalSheet('Term. Externos (Préstamo IMS)', extTermIMS);
+        buildSimSheet('SIMs Externas (Préstamo IMS)', extSimIMS);
+      }
+
+    } else {
+      // Global Consolidated Report
+      buildTerminalSheet('Terminales', terminals);
+      buildSimSheet('SIMCARDS', simCards);
+    }
 
     // ── Send Response ──
     const now = new Date();
@@ -134,7 +201,8 @@ router.get('/excel', async (_req, res) => {
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
     const dateStr = `${year}-${month}-${day}`;
-    const filename = `inventario_${dateStr}.xlsx`;
+    const labelTeam = targetTeam === 'PC' ? 'PS' : targetTeam;
+    const filename = `inventario_${labelTeam}_${dateStr}.xlsx`;
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);

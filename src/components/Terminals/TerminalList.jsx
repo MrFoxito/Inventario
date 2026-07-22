@@ -8,6 +8,7 @@ import ConfirmDialog from '../shared/ConfirmDialog';
 import DeviceImage from '../shared/DeviceImage';
 import DeviceDetailsModal from '../shared/DeviceDetailsModal';
 import { TEAMS, getTeamConfig, canSeeAllTeams } from '../../utils/constants';
+import ExportModal from '../shared/ExportModal';
 import './Terminals.css';
 
 const TEAM_FILTER_ALL = 'ALL';
@@ -27,6 +28,7 @@ export default function TerminalList() {
   const [deletingTerminal, setDeletingTerminal] = useState(null);
   
   const [viewingTerminal, setViewingTerminal] = useState(null);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   
   const { addToast } = useToast();
 
@@ -51,8 +53,7 @@ export default function TerminalList() {
   };
 
   const handleExport = () => {
-    window.location.href = '/api/export/excel';
-    addToast('Descarga iniciada', 'El archivo Excel se está descargando', 'info');
+    setIsExportModalOpen(true);
   };
 
   const handleFormSubmit = async (data) => {
@@ -243,14 +244,19 @@ export default function TerminalList() {
       {isDeleteOpen && deletingTerminal && (
         <ConfirmDialog
           isOpen={isDeleteOpen}
-          title="Eliminar Terminal"
-          message={`¿Estás seguro que deseas eliminar el terminal ${deletingTerminal.comercial} (IMEI: ${deletingTerminal.imei1})? Esta acción no se puede deshacer.`}
+          title="Eliminar Equipo"
+          message={`¿Estás seguro que deseas eliminar ${deletingTerminal.comercial}? Esta acción no se puede deshacer.`}
           confirmText="Eliminar"
           type="danger"
           onConfirm={handleDeleteConfirm}
           onCancel={() => setIsDeleteOpen(false)}
         />
       )}
+
+      <ExportModal 
+        isOpen={isExportModalOpen} 
+        onClose={() => setIsExportModalOpen(false)} 
+      />
 
       <DeviceDetailsModal 
         isOpen={!!viewingTerminal} 

@@ -6,6 +6,7 @@ import { Download, Plus, Search, CreditCard, Edit2, Trash2 } from 'lucide-react'
 import SimCardForm from './SimCardForm';
 import ConfirmDialog from '../shared/ConfirmDialog';
 import { TEAMS, getTeamConfig, canSeeAllTeams } from '../../utils/constants';
+import ExportModal from '../shared/ExportModal';
 import './SimCards.css';
 import '../Terminals/Terminals.css'; // Reuse premium table styles
 
@@ -25,6 +26,7 @@ export default function SimCardList() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deletingSimCard, setDeletingSimCard] = useState(null);
   
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const { addToast } = useToast();
 
   useEffect(() => {
@@ -48,8 +50,7 @@ export default function SimCardList() {
   };
 
   const handleExport = () => {
-    window.location.href = '/api/export/excel';
-    addToast('Descarga iniciada', 'El archivo Excel se está descargando', 'info');
+    setIsExportModalOpen(true);
   };
 
   const handleFormSubmit = async (data) => {
@@ -235,6 +236,11 @@ export default function SimCardList() {
           onCancel={() => setIsDeleteOpen(false)}
         />
       )}
+
+      <ExportModal 
+        isOpen={isExportModalOpen} 
+        onClose={() => setIsExportModalOpen(false)} 
+      />
     </div>
   );
 }
