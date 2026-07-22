@@ -174,7 +174,7 @@ export default function EmployeeList() {
                     <td data-label="Terminales" style={{ textAlign: 'center', fontWeight: 600 }}>
                       {emp.term_count > 0 ? (
                         <span className="badge badge-info" style={{ borderRadius: '20px', padding: '0.2rem 0.65rem' }}>
-                          📱 {emp.term_count}
+                          {emp.term_count}
                         </span>
                       ) : (
                         <span style={{ color: 'var(--text-secondary)' }}>0</span>
@@ -183,7 +183,7 @@ export default function EmployeeList() {
                     <td data-label="SIM Cards" style={{ textAlign: 'center', fontWeight: 600 }}>
                       {emp.sim_count > 0 ? (
                         <span className="badge badge-warning" style={{ borderRadius: '20px', padding: '0.2rem 0.65rem' }}>
-                          💳 {emp.sim_count}
+                          {emp.sim_count}
                         </span>
                       ) : (
                         <span style={{ color: 'var(--text-secondary)' }}>0</span>
