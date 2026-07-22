@@ -190,8 +190,9 @@ export async function getLogs(params = {}) {
    Reports
    ============================== */
 
-export async function getWeeklyReport() {
-  const res = await request('/api/reports/weekly');
+export async function getWeeklyReport(team = '') {
+  const query = team ? `?team=${team}` : '';
+  const res = await request(`/api/reports/weekly${query}`);
   return res.json();
 }
 

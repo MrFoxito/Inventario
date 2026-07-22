@@ -2,11 +2,19 @@ import { useState, useEffect } from 'react';
 import { getLogs } from '../../utils/api';
 import { formatDate, getRelativeTime } from '../../utils/helpers';
 import { useToast } from '../../App';
+import { useAuth } from '../../contexts/AuthContext';
+import { TEAMS, canSeeAllTeams } from '../../utils/constants';
 import { Search, ClipboardList, ArrowUpRight, ArrowDownLeft, Mail } from 'lucide-react';
 import EmailGenerator from '../Assignments/EmailGenerator';
 import './Logs.css';
 
+const TEAM_FILTER_ALL = 'ALL';
+
 export default function LogsHistory() {
+  const { user } = useAuth();
+  const canSeeAll = canSeeAllTeams(user);
+
+  const [teamFilter, setTeamFilter] = useState(canSeeAll ? TEAM_FILTER_ALL : (user?.team || 'PC'));
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
@@ -20,12 +28,13 @@ export default function LogsHistory() {
 
   useEffect(() => {
     fetchLogs();
-  }, [filters]);
+  }, [filters, teamFilter]);
 
   const fetchLogs = async () => {
     setLoading(true);
     try {
-      const data = await getLogs(filters);
+      const activeTeam = canSeeAll ? teamFilter : (user?.team || 'PC');
+      const data = await getLogs({ ...filters, team: activeTeam });
       setLogs(data);
     } catch (err) {
       addToast('Error', 'No se pudo cargar el historial: ' + err.message, 'error');
@@ -43,10 +52,10 @@ export default function LogsHistory() {
     <div className="logs-container">
       <div className="logs-header">
         <h2>Historial de Trazabilidad</h2>
-        <p>Línea de tiempo de todos los movimientos de equipos</p>
+        <p>Línea de tiempo de todos los movimientos de equipos {canSeeAll && teamFilter !== 'ALL' ? `(${teamFilter === 'PC' ? 'PS' : teamFilter})` : ''}</p>
       </div>
 
-      <div className="filters-bar">
+      <div className="filters-bar" style={{ flexWrap: 'wrap', gap: '1rem' }}>
         <div className="search-input-wrapper">
           <span><Search size={18} /></span>
           <input 
@@ -59,7 +68,7 @@ export default function LogsHistory() {
           />
         </div>
         
-        <div className="status-filters">
+        <div className="status-filters" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
           <select name="item_type" value={filters.item_type} onChange={handleFilterChange} className="form-control">
             <option value="">Todos los Equipos</option>
             <option value="Terminal">Terminales</option>
@@ -72,6 +81,15 @@ export default function LogsHistory() {
             <option value="Devolución">Devoluciones</option>
           </select>
         </div>
+
+        {canSeeAll && (
+          <div className="status-filters">
+            <button className={`filter-btn ${teamFilter === TEAM_FILTER_ALL ? 'active' : ''}`} onClick={() => setTeamFilter(TEAM_FILTER_ALL)}>Todos</button>
+            {TEAMS.filter(t => t.value !== 'BOTH').map(t => (
+              <button key={t.value} className={`filter-btn ${teamFilter === t.value ? 'active' : ''}`} onClick={() => setTeamFilter(t.value)}>{t.label}</button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="timeline-container">
@@ -101,68 +119,43 @@ export default function LogsHistory() {
                 <div className="timeline-icon">
                   {isLoan ? <ArrowUpRight size={20} /> : <ArrowDownLeft size={20} />}
                 </div>
+
                 <div className="timeline-content">
                   <div className="timeline-header">
                     <div>
-                      <span className="timeline-employee">{log.employee}</span>
-                      <span className="timeline-action-text">
-                        {isLoan ? ' recibió en préstamo ' : ' devolvió '}
-                        un(a) {log.item_type}
+                      <span className={`badge ${isLoan ? 'Prestado' : 'Disponible'}`}>
+                        {log.action}
                       </span>
+                      <span className="log-item-type">{log.item_type}</span>
                     </div>
-                    <div className="timeline-time" title={formatDate(log.created_at)}>
+                    <div className="log-date" title={formatDate(log.created_at)}>
                       {getRelativeTime(log.created_at)}
                     </div>
                   </div>
-                  
-                  <div className="timeline-details">
-                    {log.item_type === 'Terminal' ? (
-                      <>
-                        <div className="detail-row">
-                          <span className="detail-label">Equipo:</span>
-                          <span className="detail-value">{details.comercial} ({details.fabricante})</span>
-                        </div>
-                        <div className="detail-row">
-                          <span className="detail-label">IMEI 1:</span>
-                          <span className="detail-value">{details.imei1}</span>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="detail-row">
-                          <span className="detail-label">Plan:</span>
-                          <span className="detail-value">{details.tipo_plan}</span>
-                        </div>
-                        <div className="detail-row">
-                          <span className="detail-label">Línea:</span>
-                          <span className="detail-value">{details.msisdn || details.iccid}</span>
-                        </div>
-                      </>
-                    )}
-                    
-                    {log.notes && (
-                      <div className="detail-row" style={{ marginTop: '0.5rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-                        Nota: {log.notes}
-                      </div>
-                    )}
 
-                    {isLoan && (
-                      <div style={{ marginTop: '1rem' }}>
-                        <button 
-                          className="btn-secondary" 
-                          style={{ 
-                            padding: '0.4rem 0.8rem', 
-                            fontSize: '0.85rem',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            whiteSpace: 'nowrap'
-                          }} 
-                          onClick={() => setViewingEmailLogId([log.id])}
-                        >
-                          <Mail size={14} style={{ marginRight: '6px' }} /> Ver Correo de Préstamo
-                        </button>
-                      </div>
-                    )}
+                  <div className="log-main-info">
+                    <h4>{log.employee}</h4>
+                    <p className="log-device-name">
+                      {log.item_type === 'Terminal' 
+                        ? `${details.fabricante || ''} ${details.comercial || ''} (${details.modelo || 'Sin Modelo'})`
+                        : `Chip MSISDN: ${details.msisdn || details.iccid || 'Sin número'}`
+                      }
+                    </p>
+                  </div>
+
+                  {log.notes && (
+                    <p className="log-notes">
+                      <strong>Nota:</strong> {log.notes}
+                    </p>
+                  )}
+
+                  <div className="log-footer">
+                    <button 
+                      className="btn-link"
+                      onClick={() => setViewingEmailLogId(log.id)}
+                    >
+                      <Mail size={14} /> Ver Correo de Notificación
+                    </button>
                   </div>
                 </div>
               </div>
@@ -172,11 +165,10 @@ export default function LogsHistory() {
       </div>
 
       {viewingEmailLogId && (
-        <div className="modal-overlay" onClick={() => setViewingEmailLogId(null)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', width: '90%', padding: '20px' }}>
-            <EmailGenerator logIds={viewingEmailLogId} onDone={() => setViewingEmailLogId(null)} isFromHistory={true} />
-          </div>
-        </div>
+        <EmailGenerator 
+          logId={viewingEmailLogId} 
+          onClose={() => setViewingEmailLogId(null)} 
+        />
       )}
     </div>
   );

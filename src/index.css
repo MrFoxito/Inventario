@@ -1035,3 +1035,13 @@ p {
   }
 }
 
+/* === Select Padding Overflow Fix === */
+select.form-control,
+select.form-select,
+.status-filters select {
+  padding-right: 2.5rem !important;
+  padding-left: 1rem !important;
+  min-width: 185px;
+  cursor: pointer;
+}
+

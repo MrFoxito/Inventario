@@ -4,8 +4,9 @@ import { supabase } from '../_supabase.js';
 const router = Router();
 
 // ── GET /api/reports/weekly — Generate weekly report ────────────────
-router.get('/weekly', async (_req, res) => {
+router.get('/weekly', async (req, res) => {
   try {
+    const team = req.query.team; // 'PC', 'IMS', 'ALL'
     const now = new Date();
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const fromDate = weekAgo.toISOString();
@@ -21,10 +22,21 @@ router.get('/weekly', async (_req, res) => {
     if (logsError) throw logsError;
 
     // Parse item details
-    const parsedLogs = (logs || []).map((log) => ({
+    let parsedLogs = (logs || []).map((log) => ({
       ...log,
       item_detail: typeof log.item_detail === 'string' ? JSON.parse(log.item_detail) : (log.item_detail || {}),
     }));
+
+    if (team && team !== 'ALL') {
+      const { data: teamEmps } = await supabase.from('employees').select('name').eq('team', team);
+      const teamEmpNames = new Set((teamEmps || []).map(e => (e.name || '').trim().toLowerCase()));
+
+      parsedLogs = parsedLogs.filter(log => {
+        const empName = (log.employee || '').trim().toLowerCase();
+        const itemTeam = log.item_detail?.team;
+        return teamEmpNames.has(empName) || itemTeam === team;
+      });
+    }
 
     // Separate loans and returns
     const loans = parsedLogs.filter((l) => l.action === 'Préstamo');
@@ -45,7 +57,8 @@ router.get('/weekly', async (_req, res) => {
     }
 
     // Build report text
-    let reportText = '2. Inventory Updates (Terminals & SIMcards)\n\n';
+    const areaLabel = team === 'PC' ? ' (PS Area)' : (team === 'IMS' ? ' (IMS Area)' : '');
+    let reportText = `2. Inventory Updates${areaLabel} (Terminals & SIMcards)\n\n`;
 
     if (loans.length === 0 && returns.length === 0) {
       reportText += 'No inventory updates or testing assignments were made this week.\n\n';
@@ -79,15 +92,19 @@ router.get('/weekly', async (_req, res) => {
     }
 
     // Available inventory
-    const { data: availableTerminals, error: termError } = await supabase
+    let termAvailQuery = supabase
       .from('terminals')
       .select('*')
-      .eq('status', 'Disponible')
-      .order('comercial', { ascending: true });
+      .eq('status', 'Disponible');
+      
+    if (team && team !== 'ALL') {
+      termAvailQuery = termAvailQuery.eq('team', team);
+    }
+    const { data: availableTerminals, error: termError } = await termAvailQuery.order('comercial', { ascending: true });
 
     if (termError) throw termError;
 
-    reportText += 'General Inventory (Available):\n';
+    reportText += `General Inventory (Available${areaLabel}):\n`;
     if (!availableTerminals || availableTerminals.length === 0) {
       reportText += 'No terminals currently available.\n';
     } else {

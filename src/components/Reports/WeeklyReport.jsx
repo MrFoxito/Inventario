@@ -2,10 +2,18 @@ import { useState } from 'react';
 import { getWeeklyReport } from '../../utils/api';
 import { copyToClipboard, formatDateShort } from '../../utils/helpers';
 import { useToast } from '../../App';
-import { LineChart, Sparkles, Calendar, ArrowUpRight, ArrowDownLeft, CheckCircle, Copy } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { TEAMS, canSeeAllTeams } from '../../utils/constants';
+import { LineChart, Sparkles, Calendar, ArrowUpRight, ArrowDownLeft, Copy } from 'lucide-react';
 import './Reports.css';
 
+const TEAM_FILTER_ALL = 'ALL';
+
 export default function WeeklyReport() {
+  const { user } = useAuth();
+  const canSeeAll = canSeeAllTeams(user);
+
+  const [teamFilter, setTeamFilter] = useState(canSeeAll ? TEAM_FILTER_ALL : (user?.team || 'PC'));
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -17,9 +25,9 @@ export default function WeeklyReport() {
     setCopied(false);
     
     try {
-      // Small artificial delay to make the "magic" feel substantial
-      await new Promise(r => setTimeout(r, 800));
-      const data = await getWeeklyReport();
+      await new Promise(r => setTimeout(r, 600));
+      const activeTeam = canSeeAll ? teamFilter : (user?.team || 'PC');
+      const data = await getWeeklyReport(activeTeam);
       setReportData(data);
       addToast('Éxito', 'Reporte semanal generado', 'success');
     } catch (err) {
@@ -44,11 +52,20 @@ export default function WeeklyReport() {
 
   return (
     <div className="reports-container">
-      <div className="terminals-header" style={{ marginBottom: '2rem' }}>
+      <div className="terminals-header" style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h2>Generador de Reportes</h2>
           <p>Extrae automáticamente todos los movimientos de los últimos 7 días y formatea el reporte semanal listo para enviar.</p>
         </div>
+
+        {canSeeAll && (
+          <div className="status-filters" style={{ margin: 0 }}>
+            <button className={`filter-btn ${teamFilter === TEAM_FILTER_ALL ? 'active' : ''}`} onClick={() => { setTeamFilter(TEAM_FILTER_ALL); setReportData(null); }}>Todos</button>
+            {TEAMS.filter(t => t.value !== 'BOTH').map(t => (
+              <button key={t.value} className={`filter-btn ${teamFilter === t.value ? 'active' : ''}`} onClick={() => { setTeamFilter(t.value); setReportData(null); }}>{t.label}</button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="report-action-card">
@@ -57,8 +74,8 @@ export default function WeeklyReport() {
             <LineChart size={32} />
           </div>
           <div className="report-action-text">
-            <h3>Reporte Semanal de Inventario</h3>
-            <p>Genera un resumen detallado de los préstamos, devoluciones y el estado actual de todos los equipos.</p>
+            <h3>Reporte Semanal {teamFilter === 'PC' ? 'PS' : (teamFilter === 'IMS' ? 'IMS' : 'Global')}</h3>
+            <p>Genera un resumen detallado de préstamos, devoluciones y stock disponible {teamFilter !== 'ALL' ? `para el área ${teamFilter === 'PC' ? 'PS' : teamFilter}` : 'global'}.</p>
           </div>
         </div>
         <div className="generator-section" style={{ margin: 0 }}>
@@ -98,16 +115,15 @@ export default function WeeklyReport() {
 
           <div className="copy-report-wrapper">
             <button 
-              className={`btn-primary ${copied ? 'success' : ''}`} 
+              className={`btn ${copied ? 'btn-success' : 'btn-primary'}`} 
               onClick={handleCopy}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '0.5rem',
-                padding: '1rem 2rem', 
-                fontSize: '1.1rem',
-                ...(copied ? { background: 'var(--accent-success)' } : {})
-              }}
+              style={{ width: '100%', padding: '0.85rem' }}
             >
-              {copied ? <><CheckCircle size={20} /> Copiado exitosamente</> : <><Copy size={20} /> Copiar Reporte Completo</>}
+              {copied ? (
+                <>¡Copiado al Portapapeles!</>
+              ) : (
+                <><Copy size={18} /> Copiar Texto del Reporte</>
+              )}
             </button>
           </div>
         </div>
