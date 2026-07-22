@@ -4,20 +4,45 @@ import { supabase } from '../_supabase.js';
 const router = Router();
 
 // GET /api/dashboard/stats
-router.get('/stats', async (_req, res) => {
+router.get('/stats', async (req, res) => {
   try {
-    // ── Terminal stats ──
-    const { count: termTotal } = await supabase.from('terminals').select('*', { count: 'exact', head: true });
-    const { count: termAvail } = await supabase.from('terminals').select('*', { count: 'exact', head: true }).eq('status', 'Disponible');
-    const { count: termLent } = await supabase.from('terminals').select('*', { count: 'exact', head: true }).eq('status', 'Prestado');
+    const team = req.query.team; // 'PC', 'IMS', 'ALL'
 
-    // ── SIM card stats ──
-    const { count: simTotal } = await supabase.from('sim_cards').select('*', { count: 'exact', head: true });
-    const { count: simAvail } = await supabase.from('sim_cards').select('*', { count: 'exact', head: true }).eq('status', 'Disponible');
-    const { count: simLent } = await supabase.from('sim_cards').select('*', { count: 'exact', head: true }).eq('status', 'Prestado');
+    let termQuery = supabase.from('terminals').select('*', { count: 'exact', head: true });
+    let termAvailQuery = supabase.from('terminals').select('*', { count: 'exact', head: true }).eq('status', 'Disponible');
+    let termLentQuery = supabase.from('terminals').select('*', { count: 'exact', head: true }).eq('status', 'Prestado');
 
-    // ── Employee count ──
-    const { count: empCount } = await supabase.from('employees').select('*', { count: 'exact', head: true }).eq('active', 1);
+    let simQuery = supabase.from('sim_cards').select('*', { count: 'exact', head: true });
+    let simAvailQuery = supabase.from('sim_cards').select('*', { count: 'exact', head: true }).eq('status', 'Disponible');
+    let simLentQuery = supabase.from('sim_cards').select('*', { count: 'exact', head: true }).eq('status', 'Prestado');
+
+    let empQuery = supabase.from('employees').select('*', { count: 'exact', head: true }).eq('active', 1);
+
+    if (team && team !== 'ALL') {
+      termQuery = termQuery.eq('team', team);
+      termAvailQuery = termAvailQuery.eq('team', team);
+      termLentQuery = termLentQuery.eq('team', team);
+
+      simQuery = simQuery.eq('team', team);
+      simAvailQuery = simAvailQuery.eq('team', team);
+      simLentQuery = simLentQuery.eq('team', team);
+
+      empQuery = empQuery.eq('team', team);
+    }
+
+    const [{ count: termTotal }, { count: termAvail }, { count: termLent }] = await Promise.all([
+      termQuery, termAvailQuery, termLentQuery
+    ]);
+
+    const [{ count: simTotal }, { count: simAvail }, { count: simLent }] = await Promise.all([
+      simQuery, simAvailQuery, simLentQuery
+    ]);
+
+    const { count: empCount } = await empQuery;
+
+    // Global totals for comparison
+    const { count: globalTermTotal } = await supabase.from('terminals').select('*', { count: 'exact', head: true });
+    const { count: globalSimTotal } = await supabase.from('sim_cards').select('*', { count: 'exact', head: true });
 
     // ── Recent activity (last 10 logs) ──
     const { data: recentLogs, error: logsError } = await supabase
@@ -33,7 +58,12 @@ router.get('/stats', async (_req, res) => {
       item_detail: typeof log.item_detail === 'string' ? JSON.parse(log.item_detail) : log.item_detail,
     }));
 
-    const { data: terminalsData } = await supabase.from('terminals').select('fabricante');
+    let termDataQuery = supabase.from('terminals').select('fabricante');
+    if (team && team !== 'ALL') {
+      termDataQuery = termDataQuery.eq('team', team);
+    }
+    const { data: terminalsData } = await termDataQuery;
+
     const brandsCount = {};
     if (terminalsData) {
       terminalsData.forEach(t => {
@@ -50,11 +80,13 @@ router.get('/stats', async (_req, res) => {
         total: termTotal ?? 0,
         available: termAvail ?? 0,
         lent: termLent ?? 0,
+        globalTotal: globalTermTotal ?? 0,
       },
       simcards: {
         total: simTotal ?? 0,
         available: simAvail ?? 0,
         lent: simLent ?? 0,
+        globalTotal: globalSimTotal ?? 0,
       },
       recent_activity: parsedLogs,
       employees: {

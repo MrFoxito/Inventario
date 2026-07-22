@@ -1,20 +1,37 @@
 import { useState, useEffect } from 'react';
 import { getDashboardStats } from '../../utils/api';
+import { useAuth } from '../../contexts/AuthContext';
 import { Smartphone, CheckCircle, UploadCloud, CreditCard, Users } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { TEAMS, canSeeAllTeams } from '../../utils/constants';
 import StatCard from './StatCard';
 import RecentActivity from './RecentActivity';
 import './Dashboard.css';
 
+const TEAM_FILTER_ALL = 'ALL';
+
 export default function Dashboard() {
+  const { user } = useAuth();
+  const canSeeAll = canSeeAllTeams(user);
+
+  // Determine initial team based on user email or team property
+  const getInitialTeam = () => {
+    if (user?.email?.toLowerCase().includes('pedro')) return 'IMS';
+    if (user?.team && user.team !== 'BOTH') return user.team;
+    return 'PC'; // Default to PS for Miguel / Admin
+  };
+
+  const [selectedTeam, setSelectedTeam] = useState(getInitialTeam());
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     async function loadStats() {
+      setLoading(true);
       try {
-        const data = await getDashboardStats();
+        const teamParam = canSeeAll ? selectedTeam : (user?.team || 'PC');
+        const data = await getDashboardStats(teamParam);
         setStats(data);
       } catch (err) {
         setError(err.message);
@@ -23,9 +40,9 @@ export default function Dashboard() {
       }
     }
     loadStats();
-  }, []);
+  }, [selectedTeam, canSeeAll, user]);
 
-  if (loading) {
+  if (loading && !stats) {
     return (
       <div className="dashboard-loading">
         <div className="shimmer-card"></div>
@@ -41,11 +58,43 @@ export default function Dashboard() {
     return <div className="error-message">Error cargando dashboard: {error}</div>;
   }
 
+  const getDashboardTitle = () => {
+    if (!canSeeAll) {
+      return `Dashboard - Área ${user?.team === 'PC' ? 'PS' : (user?.team || '')}`;
+    }
+    if (selectedTeam === TEAM_FILTER_ALL) return 'Dashboard General (Consolidado)';
+    if (selectedTeam === 'PC') return 'Dashboard - Área PS (Packet Switch)';
+    if (selectedTeam === 'IMS') return 'Dashboard - Área IMS';
+    return 'Dashboard General';
+  };
+
   return (
     <div className="dashboard-container">
-      <header className="dashboard-header">
-        <h1>Dashboard General</h1>
-        <p>Resumen del estado actual del inventario</p>
+      <header className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h1>{getDashboardTitle()}</h1>
+          <p>Resumen del estado actual del inventario {canSeeAll && selectedTeam !== 'ALL' ? 'filtrado por área' : ''}</p>
+        </div>
+
+        {canSeeAll && (
+          <div className="status-filters" style={{ margin: 0 }}>
+            <button 
+              className={`filter-btn ${selectedTeam === TEAM_FILTER_ALL ? 'active' : ''}`} 
+              onClick={() => setSelectedTeam(TEAM_FILTER_ALL)}
+            >
+              Todos
+            </button>
+            {TEAMS.map(t => (
+              <button 
+                key={t.value} 
+                className={`filter-btn ${selectedTeam === t.value ? 'active' : ''}`} 
+                onClick={() => setSelectedTeam(t.value)}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        )}
       </header>
 
       <div className="stats-grid">
@@ -54,14 +103,14 @@ export default function Dashboard() {
           value={stats.terminals.total} 
           icon={<Smartphone size={24} />} 
           color="primary"
-          trend="Equipos registrados" 
+          trend={canSeeAll && selectedTeam !== 'ALL' ? `De ${stats.terminals.globalTotal} globales` : "Equipos registrados"} 
         />
         <StatCard 
           title="Terminales Disponibles" 
           value={stats.terminals.available} 
           icon={<CheckCircle size={24} />} 
           color="success"
-          trend={`${Math.round((stats.terminals.available / (stats.terminals.total || 1)) * 100)}% del total`} 
+          trend={`${Math.round((stats.terminals.available / (stats.terminals.total || 1)) * 100)}% del área`} 
         />
         <StatCard 
           title="Terminales Prestados" 
@@ -88,7 +137,7 @@ export default function Dashboard() {
             <span className="stat-icon"><Users size={24} /></span>
             <div className="stat-info">
               <h4>{stats.employees.total} Empleados</h4>
-              <p>Registrados en el sistema</p>
+              <p>{selectedTeam !== 'ALL' ? `Registrados en ${selectedTeam === 'PC' ? 'PS' : selectedTeam}` : 'Registrados en el sistema'}</p>
             </div>
           </div>
           

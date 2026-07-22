@@ -28,8 +28,9 @@ async function request(url, options = {}) {
    Dashboard
    ============================== */
 
-export async function getDashboardStats() {
-  const res = await request('/api/dashboard/stats');
+export async function getDashboardStats(team = '') {
+  const query = team ? `?team=${team}` : '';
+  const res = await request(`/api/dashboard/stats${query}`);
   return res.json();
 }
 
