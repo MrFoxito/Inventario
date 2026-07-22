@@ -60,11 +60,11 @@ export default function Dashboard() {
 
   const getDashboardTitle = () => {
     if (!canSeeAll) {
-      return `Dashboard - Área ${user?.team === 'PC' ? 'PS' : (user?.team || '')}`;
+      return `Dashboard ${user?.team === 'PC' ? 'PS' : (user?.team || '')}`;
     }
-    if (selectedTeam === TEAM_FILTER_ALL) return 'Dashboard General (Consolidado)';
-    if (selectedTeam === 'PC') return 'Dashboard - Área PS (Packet Switch)';
-    if (selectedTeam === 'IMS') return 'Dashboard - Área IMS';
+    if (selectedTeam === TEAM_FILTER_ALL) return 'Dashboard General';
+    if (selectedTeam === 'PC') return 'Dashboard PS';
+    if (selectedTeam === 'IMS') return 'Dashboard IMS';
     return 'Dashboard General';
   };
 
@@ -84,7 +84,7 @@ export default function Dashboard() {
             >
               Todos
             </button>
-            {TEAMS.map(t => (
+            {TEAMS.filter(t => t.value !== 'BOTH').map(t => (
               <button 
                 key={t.value} 
                 className={`filter-btn ${selectedTeam === t.value ? 'active' : ''}`} 

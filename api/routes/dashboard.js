@@ -44,19 +44,32 @@ router.get('/stats', async (req, res) => {
     const { count: globalTermTotal } = await supabase.from('terminals').select('*', { count: 'exact', head: true });
     const { count: globalSimTotal } = await supabase.from('sim_cards').select('*', { count: 'exact', head: true });
 
-    // ── Recent activity (last 10 logs) ──
+    // ── Recent activity (last 30 logs, then filter by team) ──
     const { data: recentLogs, error: logsError } = await supabase
       .from('assignment_logs')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(10);
+      .limit(30);
       
     if (logsError) throw logsError;
 
-    const parsedLogs = (recentLogs || []).map((log) => ({
+    let parsedLogs = (recentLogs || []).map((log) => ({
       ...log,
       item_detail: typeof log.item_detail === 'string' ? JSON.parse(log.item_detail) : log.item_detail,
     }));
+
+    if (team && team !== 'ALL') {
+      const { data: teamEmps } = await supabase.from('employees').select('name').eq('team', team);
+      const teamEmpNames = new Set((teamEmps || []).map(e => (e.name || '').trim().toLowerCase()));
+
+      parsedLogs = parsedLogs.filter(log => {
+        const empName = (log.employee || '').trim().toLowerCase();
+        const itemTeam = log.item_detail?.team;
+        return teamEmpNames.has(empName) || itemTeam === team;
+      });
+    }
+
+    parsedLogs = parsedLogs.slice(0, 10);
 
     let termDataQuery = supabase.from('terminals').select('fabricante');
     if (team && team !== 'ALL') {
