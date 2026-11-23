@@ -37,6 +37,7 @@ export function getStatusBadgeClass(status) {
   const s = status.toLowerCase();
   if (s === 'disponible' || s === 'available' || s === 'activa') return 'badge-success';
   if (s === 'prestado' || s === 'lent' || s === 'asignada') return 'badge-warning';
+  if (s === 'devuelto' || s === 'returned') return 'badge-devuelto';
   if (s === 'inactivo' || s === 'inactive' || s === 'baja') return 'badge-danger';
   return 'badge-info';
 }

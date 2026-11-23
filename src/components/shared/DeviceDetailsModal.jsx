@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Smartphone, CheckCircle, UploadCloud, Info, Clock } from 'lucide-react';
+import { X, Smartphone, CheckCircle, UploadCloud, Info, Clock, RotateCcw } from 'lucide-react';
 import DeviceImage from './DeviceImage';
 import DeviceHistory from './DeviceHistory';
 import './DeviceDetailsModal.css';
@@ -25,8 +25,8 @@ export default function DeviceDetailsModal({ isOpen, onClose, terminal }) {
             <div className="device-header">
               <h2>{terminal.comercial}</h2>
               <span className={`badge ${terminal.status}`}>
-                {terminal.status === 'Disponible' ? <CheckCircle size={14} style={{ marginRight: '4px' }}/> : <UploadCloud size={14} style={{ marginRight: '4px' }}/>}
-                {terminal.status}
+                {terminal.status === 'Disponible' ? <CheckCircle size={14} style={{ marginRight: '4px' }}/> : terminal.status === 'Devuelto' ? <RotateCcw size={14} style={{ marginRight: '4px' }}/> : <UploadCloud size={14} style={{ marginRight: '4px' }}/>}
+                {terminal.status === 'Devuelto' ? 'Devuelto a Entel' : terminal.status}
               </span>
             </div>
 

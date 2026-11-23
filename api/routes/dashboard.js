@@ -11,10 +11,12 @@ router.get('/stats', async (req, res) => {
     let termQuery = supabase.from('terminals').select('*', { count: 'exact', head: true });
     let termAvailQuery = supabase.from('terminals').select('*', { count: 'exact', head: true }).eq('status', 'Disponible');
     let termLentQuery = supabase.from('terminals').select('*', { count: 'exact', head: true }).eq('status', 'Prestado');
+    let termDevueltoQuery = supabase.from('terminals').select('*', { count: 'exact', head: true }).eq('status', 'Devuelto');
 
     let simQuery = supabase.from('sim_cards').select('*', { count: 'exact', head: true });
     let simAvailQuery = supabase.from('sim_cards').select('*', { count: 'exact', head: true }).eq('status', 'Disponible');
     let simLentQuery = supabase.from('sim_cards').select('*', { count: 'exact', head: true }).eq('status', 'Prestado');
+    let simDevueltoQuery = supabase.from('sim_cards').select('*', { count: 'exact', head: true }).eq('status', 'Devuelto');
 
     let empQuery = supabase.from('employees').select('*', { count: 'exact', head: true }).eq('active', 1);
 
@@ -22,20 +24,22 @@ router.get('/stats', async (req, res) => {
       termQuery = termQuery.eq('team', team);
       termAvailQuery = termAvailQuery.eq('team', team);
       termLentQuery = termLentQuery.eq('team', team);
+      termDevueltoQuery = termDevueltoQuery.eq('team', team);
 
       simQuery = simQuery.eq('team', team);
       simAvailQuery = simAvailQuery.eq('team', team);
       simLentQuery = simLentQuery.eq('team', team);
+      simDevueltoQuery = simDevueltoQuery.eq('team', team);
 
       empQuery = empQuery.eq('team', team);
     }
 
-    const [{ count: termTotal }, { count: termAvail }, { count: termLent }] = await Promise.all([
-      termQuery, termAvailQuery, termLentQuery
+    const [{ count: termTotal }, { count: termAvail }, { count: termLent }, { count: termDevuelto }] = await Promise.all([
+      termQuery, termAvailQuery, termLentQuery, termDevueltoQuery
     ]);
 
-    const [{ count: simTotal }, { count: simAvail }, { count: simLent }] = await Promise.all([
-      simQuery, simAvailQuery, simLentQuery
+    const [{ count: simTotal }, { count: simAvail }, { count: simLent }, { count: simDevuelto }] = await Promise.all([
+      simQuery, simAvailQuery, simLentQuery, simDevueltoQuery
     ]);
 
     const { count: empCount } = await empQuery;
@@ -93,12 +97,14 @@ router.get('/stats', async (req, res) => {
         total: termTotal ?? 0,
         available: termAvail ?? 0,
         lent: termLent ?? 0,
+        returned: termDevuelto ?? 0,
         globalTotal: globalTermTotal ?? 0,
       },
       simcards: {
         total: simTotal ?? 0,
         available: simAvail ?? 0,
         lent: simLent ?? 0,
+        returned: simDevuelto ?? 0,
         globalTotal: globalSimTotal ?? 0,
       },
       recent_activity: parsedLogs,

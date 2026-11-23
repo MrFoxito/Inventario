@@ -143,6 +143,7 @@ export default function SimCardList() {
           <button className={`filter-btn ${filter === 'Todos' ? 'active' : ''}`} onClick={() => setFilter('Todos')}>Todas</button>
           <button className={`filter-btn ${filter === 'Disponible' ? 'active' : ''}`} onClick={() => setFilter('Disponible')}>Disponibles</button>
           <button className={`filter-btn ${filter === 'Prestado' ? 'active' : ''}`} onClick={() => setFilter('Prestado')}>Prestadas</button>
+          <button className={`filter-btn ${filter === 'Devuelto' ? 'active' : ''}`} onClick={() => setFilter('Devuelto')}>Devueltas</button>
         </div>
         {canSeeAll && (
           <div className="status-filters">
@@ -193,7 +194,9 @@ export default function SimCardList() {
                   <td data-label="Team">
                     <span className={`badge ${teamConfig.badgeClass}`}>{teamConfig.label}</span>
                   </td>
-                  <td data-label="Handler Actual">{sim.status === 'Prestado' ? sim.current_handler : '-'}</td>
+                  <td data-label="Handler Actual">
+                    {sim.status === 'Prestado' ? sim.current_handler : sim.status === 'Devuelto' ? 'Devuelto a Entel' : '-'}
+                  </td>
                   <td data-label="Estado">
                     <span className={`badge ${sim.status}`}>{sim.status}</span>
                   </td>

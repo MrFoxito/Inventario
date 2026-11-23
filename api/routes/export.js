@@ -31,11 +31,14 @@ router.get('/excel', async (req, res) => {
       bottom: { style: 'thin' }, right: { style: 'thin' }
     };
     
-    // Helper to apply green/red colors for status
-    const applyStatusStyle = (cell, isAvailable) => {
-      if (isAvailable) {
+    // Helper to apply green/red/blue colors for status
+    const applyStatusStyle = (cell, status) => {
+      if (status === 'Disponible') {
         cell.font = { color: { argb: 'FF059669' }, bold: true }; // Emerald 600
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD1FAE5' } };
+      } else if (status === 'Devuelto') {
+        cell.font = { color: { argb: 'FF2563EB' }, bold: true }; // Blue 600
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDBEAFE' } };
       } else {
         cell.font = { color: { argb: 'FFDC2626' }, bold: true }; // Red 600
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEE2E2' } };
@@ -67,8 +70,11 @@ router.get('/excel', async (req, res) => {
 
       (list || []).forEach((t) => {
         const isAvail = t.status === 'Disponible';
-        const estado = isAvail ? 'Disponible' : 'Ocupado';
-        const ubicacion = isAvail ? 'Oficinas Huawei' : `En manos de ${t.current_handler || 'Desconocido'}`;
+        const isDevuelto = t.status === 'Devuelto';
+        const estado = isAvail ? 'Disponible' : (isDevuelto ? 'Devuelto' : 'Ocupado');
+        const ubicacion = isAvail 
+          ? (t.ubicacion || 'Oficinas Huawei') 
+          : (isDevuelto ? 'Devuelto a Entel' : `En manos de ${t.current_handler || 'Desconocido'}`);
         
         const row = sheet.addRow({
           fabricante: t.fabricante || '',
@@ -78,7 +84,7 @@ router.get('/excel', async (req, res) => {
           imei1: t.imei1 || '',
           team: t.team === 'PC' ? 'PS' : (t.team || 'PS'),
           responsible: t.responsible || '',
-          current_handler: t.current_handler || '',
+          current_handler: isDevuelto ? 'Devuelto a Entel' : (t.current_handler || ''),
           ubicacion: ubicacion,
           estado: estado,
         });
@@ -87,7 +93,7 @@ router.get('/excel', async (req, res) => {
           cell.border = thinBorder;
           cell.numFmt = '@';
         });
-        applyStatusStyle(row.getCell('estado'), isAvail);
+        applyStatusStyle(row.getCell('estado'), t.status);
       });
     };
 
@@ -117,7 +123,9 @@ router.get('/excel', async (req, res) => {
 
       (list || []).forEach((s) => {
         const isAvail = s.status === 'Disponible';
-        const estado = isAvail ? 'Disponible' : 'Ocupado';
+        const isDevuelto = s.status === 'Devuelto';
+        const estado = isAvail ? 'Disponible' : (isDevuelto ? 'Devuelto' : 'Ocupado');
+        const ubicacion = isDevuelto ? 'Devuelto a Entel' : (s.estado_actual || '');
         
         const row = sheet.addRow({
           iccid: s.iccid || '',
@@ -126,10 +134,10 @@ router.get('/excel', async (req, res) => {
           tipo_plan: s.tipo_plan || '',
           team: s.team === 'PC' ? 'PS' : (s.team || 'PS'),
           owner: s.owner || '',
-          current_handler: s.current_handler || '',
+          current_handler: isDevuelto ? 'Devuelto a Entel' : (s.current_handler || ''),
           procedencia: s.procedencia || '',
           observacion: s.observacion || '',
-          ubicacion: s.estado_actual || '',
+          ubicacion: ubicacion,
           estado: estado,
         });
 
@@ -137,7 +145,7 @@ router.get('/excel', async (req, res) => {
           cell.border = thinBorder;
           cell.numFmt = '@';
         });
-        applyStatusStyle(row.getCell('estado'), isAvail);
+        applyStatusStyle(row.getCell('estado'), s.status);
       });
     };
 

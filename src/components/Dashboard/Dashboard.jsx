@@ -151,6 +151,10 @@ export default function Dashboard() {
               <div className="sim-stat-value warning-text">{stats.simcards.lent}</div>
               <div className="sim-stat-label">En Uso</div>
             </div>
+            <div className="sim-stat-item">
+              <div className="sim-stat-value" style={{ color: '#60a5fa' }}>{stats.simcards.returned || 0}</div>
+              <div className="sim-stat-label">Devueltas (Entel)</div>
+            </div>
           </div>
 
           {stats.brandDistribution && stats.brandDistribution.length > 0 && (
